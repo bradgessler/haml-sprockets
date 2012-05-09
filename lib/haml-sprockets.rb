@@ -20,7 +20,7 @@ module Haml
         haml_code = data.dup
         haml_code = haml_code.gsub(/\\/,"\\\\").gsub(/\'/,"\\\\'").gsub(/\n/,"\\n")
 
-        haml_lib = File.read("#{::Rails.root}/vendor/assets/javascripts/haml.js")
+        haml_lib = File.read(File.expand_path('../../vendor/assets/javascripts/haml.js', __FILE__))
         context = ExecJS.compile(haml_lib)
         return context.eval("Haml.optimize(Haml.compile('#{haml_code}', {escapeHtmlByDefault: true}))")
       end
