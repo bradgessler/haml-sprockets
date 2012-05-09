@@ -30,4 +30,4 @@ end
 
 Sprockets::Engines
 Sprockets.register_engine '.hamljs', Haml::Sprockets::Template
-require 'haml-sprockets/engine' if defined?(Rails)
+require 'haml-sprockets/engine' if defined?(Rails) && Rails.version =~ /^3/
