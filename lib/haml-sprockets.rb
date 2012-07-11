@@ -26,7 +26,7 @@ module Haml
         haml_lib = File.read(haml_path)
         context = ExecJS.compile(haml_lib)
 
-        js = context.eval "Haml.optimize(Haml.compile('#{haml_code}', {escapeHtmlByDefault: true}))"
+        js = context.eval "Haml.optimize(Haml.compile('#{haml_code}'))"
         escapeJs = context.eval "Haml.html_escape.toString()"
 
         <<-JST

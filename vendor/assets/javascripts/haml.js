@@ -2,8 +2,8 @@ var Haml;
  
 (function () {
 
-  var matchers, self_close_tags, embedder, forceXML, escaperName, escapeHtmlByDefault;
-
+  var matchers, self_close_tags, embedder, forceXML, escaperName='html_escape', escapeHtmlByDefault;
+  
   function html_escape(text) {
     return (text + "").
       replace(/&/g, "&amp;").
@@ -633,7 +633,7 @@ var Haml;
       var f = new Function("locals",  escaper + str );
       return f;
     }catch(e){
-      console.error(str);
+      if ( typeof(console) !== 'undefined' ) { console.error(str); }
       throw e;
     }
   }
