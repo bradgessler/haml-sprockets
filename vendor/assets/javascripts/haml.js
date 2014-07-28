@@ -2,8 +2,8 @@ var Haml;
  
 (function () {
 
-  var matchers, self_close_tags, embedder, forceXML, escaperName='html_escape', escapeHtmlByDefault;
-  
+  var matchers, self_close_tags, embedder, forceXML, escaperName, escapeHtmlByDefault;
+
   function html_escape(text) {
     return (text + "").
       replace(/&/g, "&amp;").
@@ -311,8 +311,50 @@ var Haml;
       regexp: /^(\s*):if\s+(.*)\s*$/i,
       process: function () {
         var condition = this.matches[2];
+        this.pushIfCondition([condition]);
         return '(function () { ' +
           'if (' + condition + ') { ' +
+          'return (\n' + (this.render_contents() || '') + '\n);' +
+          '} else { return ""; } }).call(this)';
+      }
+    },
+    
+    // else if statements
+    {
+      name: "else if",
+      regexp: /^(\s*):else if\s+(.*)\s*$/i,
+      process: function () {
+        var condition = this.matches[2],
+          conditionsArray = this.getIfConditions()[this.getIfConditions().length - 1],
+          ifArray = [],
+          ifStatement;
+        for (var i=0, l=conditionsArray.length; i<l; i++) {
+          ifArray.push('! (' + conditionsArray[i]+')');
+        }
+        conditionsArray.push(condition);
+        ifArray.push(condition);
+        ifStatement = 'if (' + ifArray.join(' && ') + ') { ';
+        return '(function () { ' +
+          ifStatement +
+          'return (\n' + (this.render_contents() || '') + '\n);' +
+          '} else { return ""; } }).call(this)';
+      }
+    },
+    
+    // else statements
+    {
+      name: "else",
+      regexp: /^(\s*):else\s*$/i,
+      process: function () {
+        var conditionsArray = this.popIfCondition(),
+          ifArray = [],
+          ifStatement;
+        for (var i=0, l=conditionsArray.length; i<l; i++) {
+          ifArray.push('! (' + conditionsArray[i]+')');
+        }
+        ifStatement = 'if (' + ifArray.join(' && ') + ') { ';
+        return '(function () { ' +
+          ifStatement +
           'return (\n' + (this.render_contents() || '') + '\n);' +
           '} else { return ""; } }).call(this)';
       }
@@ -334,7 +376,7 @@ var Haml;
       process: function () {
         this.contents.unshift(this.matches[2]);
         
-        return '"<!--'+this.contents.join('\\n')+'-->"';
+        return '"<!--'+this.contents.join('\\n').replace(/\"/g, '\\"')+'-->"';
       }
     },
     
@@ -443,7 +485,8 @@ var Haml;
 
   function compile(lines) {
     var block = false,
-        output = [];
+        output = [],
+        ifConditions = [];
 
     // If lines is a string, turn it into an array
     if (typeof lines === 'string') {
@@ -475,6 +518,15 @@ var Haml;
               matches: match,
               check_indent: new RegExp("^(?:\\s*|" + match[1] + "  (.*))$"),
               process: matcher.process,
+              getIfConditions: function() {
+                return ifConditions;
+              },
+              pushIfCondition: function(condition) {
+                ifConditions.push(condition);
+              },
+              popIfCondition: function() {
+                return ifConditions.pop();
+              },
               render_contents: function () {
                 return compile(this.contents);
               }
@@ -483,7 +535,7 @@ var Haml;
           }
         }
       });
-
+      
       // Match plain text
       if (!found) {
         output.push(function () {
